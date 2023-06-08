@@ -1,4 +1,3 @@
-import * as dotenv from "dotenv";
 import { renderTopLanguages } from "../src/cards/top-languages-card.js";
 import { blacklist } from "../src/common/blacklist.js";
 import {
@@ -10,8 +9,6 @@ import {
 } from "../src/common/utils.js";
 import { fetchTopLanguages } from "../src/fetchers/top-languages-fetcher.js";
 import { isLocaleAvailable } from "../src/translations.js";
-
-dotenv.config();
 
 export default async (req, res) => {
   const {
@@ -28,10 +25,14 @@ export default async (req, res) => {
     layout,
     langs_count,
     exclude_repo,
+    size_weight,
+    count_weight,
     custom_title,
     locale,
     border_radius,
     border_color,
+    disable_animations,
+    hide_progress,
   } = req.query;
   res.setHeader("Content-Type", "image/svg+xml");
 
@@ -43,10 +44,22 @@ export default async (req, res) => {
     return res.send(renderError("Something went wrong", "Locale not found"));
   }
 
+  if (
+    layout !== undefined &&
+    (typeof layout !== "string" ||
+      !["compact", "normal", "donut", "donut-vertical", "pie"].includes(layout))
+  ) {
+    return res.send(
+      renderError("Something went wrong", "Incorrect layout input"),
+    );
+  }
+
   try {
     const topLangs = await fetchTopLanguages(
       username,
       parseArray(exclude_repo),
+      size_weight,
+      count_weight,
     );
 
     const cacheSeconds = clampValue(
@@ -55,7 +68,12 @@ export default async (req, res) => {
       CONSTANTS.ONE_DAY,
     );
 
-    res.setHeader("Cache-Control", `public, max-age=${cacheSeconds}`);
+    res.setHeader(
+      "Cache-Control",
+      `max-age=${
+        cacheSeconds / 2
+      }, s-maxage=${cacheSeconds}, stale-while-revalidate=${CONSTANTS.ONE_DAY}`,
+    );
 
     return res.send(
       renderTopLanguages(topLangs, {
@@ -73,9 +91,12 @@ export default async (req, res) => {
         border_radius,
         border_color,
         locale: locale ? locale.toLowerCase() : null,
+        disable_animations: parseBoolean(disable_animations),
+        hide_progress: parseBoolean(hide_progress),
       }),
     );
   } catch (err) {
+    res.setHeader("Cache-Control", `no-cache, no-store, must-revalidate`); // Don't cache error responses.
     return res.send(renderError(err.message, err.secondaryMessage));
   }
 };
