@@ -2,6 +2,21 @@ name: Update top issues dashboard
 on:
   schedule:
     - cron: "0 0 */3 * *"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  checks: read
+  contents: read
+  deployments: read
+  issues: write
+  discussions: read
+  packages: read
+  pages: read
+  pull-requests: write
+  repository-projects: read
+  security-events: read
+  statuses: read
 
 jobs:
   showAndLabelTopIssues:
@@ -14,6 +29,7 @@ jobs:
         env:
           github_token: ${{ secrets.GITHUB_TOKEN }}
         with:
+          top_list_size: 10
           filter: "1772"
           label: true
           dashboard: true
@@ -24,6 +40,5 @@ jobs:
           top_pull_requests: true
           custom_pull_requests_label: themes
           top_custom_pull_requests_label: ":star: top themes"
-          top_custom_pull_requests_label_description:
-            The description used for the top custom pull requests.
-          top_custom_pull_requests_label_colour: #A23599
+          top_custom_pull_requests_label_description: Top themes
+          top_custom_pull_requests_label_colour: "#A23599"
